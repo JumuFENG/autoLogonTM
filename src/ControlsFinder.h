@@ -6,8 +6,13 @@
 #include <iostream>
 #include <Oleacc.h>
 #pragma comment(lib,"Oleacc.lib")
+#include <process.h>
+using std::vector;
+using std::string;
+using std::pair;
 
 #define CHROME_WINDOW_CLASS_NAME TEXT("Chrome_WidgetWin_1")
+#define MAX_LEN_OF_QQ 16
 
 class BrowserData{
 public:
@@ -44,13 +49,18 @@ private:
 	void GetAddressHwnd();
 };
 
-namespace BrowserAddress{
+namespace WindowElementFinder{
 	typedef struct tagEnumWindowStruct{
 		std::vector<HWND> hwnd_vec;
 		LPCTSTR wndClass;
 		LPCTSTR wndName;
 	} EnumWndStruct;
 	
+	typedef struct tagEnumWindowPidStruct{
+		DWORD pid;
+		std::vector<HWND> hwnd_vec;
+	} EnumWndPidStruct;
+
 	BOOL CALLBACK  EnumWindowProc(HWND hwnd, LPARAM lParam)
 	{
 		EnumWndStruct *  struc = (EnumWndStruct *)lParam;
@@ -85,8 +95,26 @@ namespace BrowserAddress{
 		return TRUE;
 	}
 
+	BOOL CALLBACK  EnumWindowProcPid(HWND hwnd, LPARAM lParam)
+	{
+		EnumWndPidStruct *  pidStruct = (EnumWndPidStruct *)lParam;
+		DWORD wndPid;
+		GetWindowThreadProcessId(hwnd, &wndPid);
+		if (wndPid == pidStruct->pid)
+		{
+			TCHAR ClassName[MAX_PATH];
+			GetClassName(hwnd, ClassName, MAX_PATH);
+			if (  _tcscmp(ClassName, TEXT("TXGuiFoundation")) == 0 && FindWindowEx(hwnd,NULL,NULL,NULL) != NULL )
+			{
+				pidStruct->hwnd_vec.push_back(hwnd);
+				return TRUE;
+			}
+		}
+		return TRUE;
+	}
+
 	//根据窗口名或类名，查找顶级窗口
-	bool FindChromeMainWnd(std::vector<HWND> & h_vec, LPCTSTR clsName, LPCTSTR wndName = NULL)
+	bool FindMainWnds(std::vector<HWND> & h_vec, LPCTSTR clsName, LPCTSTR wndName = NULL)
 	{
 		h_vec.clear();
 		std::vector<HWND> wnds;
@@ -479,7 +507,7 @@ namespace BrowserAddress{
 
 		INPUT input = {0};
 		input.type = INPUT_MOUSE;
-
+		BOOL bMouseBtnChanged = SwapMouseButton(false);
 		if (x == 0 && y == 0)
 		{// 默认在鼠标当前位置单击
 			fx = point.x * (65535.0f/fScreenWidth);
@@ -507,7 +535,10 @@ namespace BrowserAddress{
 		input.mi.dwFlags = MOUSEEVENTF_LEFTUP;
 		SendInput(1, &input, sizeof(input));
 		Sleep(100);
-
+		if (bMouseBtnChanged)
+		{
+			SwapMouseButton(true);
+		}
 		SetCursorPos(point.x, point.y);
 	}
 
@@ -631,7 +662,7 @@ namespace BrowserAddress{
 		{
 			if(*((*it).begin()) < L'9' && *((*it).begin()) > L'0')
 			{
-				Sleep(180);
+				Sleep(500);
 			}
 			else
 			{
@@ -657,10 +688,102 @@ namespace BrowserAddress{
 		InputString(wstrText);
 	}
 
+	void lowerChar(char mch)
+	{
+		char ch = (char)((int)mch - (int)'a' + (int)'A');
+		bool bCapsLock = (GetKeyState(VK_CAPITAL) & 0xffff) != 0;
+		if (bCapsLock)
+		{
+			keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
+			keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+			Sleep(10);
+			keybd_event((byte)ch, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
+			keybd_event((byte)ch, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+			Sleep(10);
+			keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
+			keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+			Sleep(10);
+		}
+		else
+		{
+			keybd_event((byte)ch, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
+			keybd_event((byte)ch, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+		}
+	}
+
+	void upperChar(char ch)
+	{
+		bool bCapsLock = ((GetKeyState(VK_CAPITAL)) & 0xffff) != 0;
+		if (!bCapsLock)
+		{
+			keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
+			keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+			Sleep(10);
+			keybd_event((byte)ch, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
+			keybd_event((byte)ch, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+			Sleep(10);
+			keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
+			keybd_event(VK_CAPITAL, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+			Sleep(10);
+		}
+		else
+		{
+			keybd_event((byte)ch, 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
+			keybd_event((byte)ch, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+			Sleep(10);
+		}
+	}
+
+	void InputPwdString(std::string url)
+	{
+// 		std::string alpha;
+// 		alpha.clear();
+		for (std::string::iterator it = url.begin(); it != url.end(); ++it)
+		{
+			if (*it >= 'a' && *it <= 'z')
+			{
+				lowerChar(*it);
+			}
+			else if (*it >= 'A' && *it <= 'Z')
+			{
+				upperChar(*it);
+			}
+			else if (*it >= '0' && *it <= '9')
+			{
+				keybd_event((byte)(*it), 0x45, KEYEVENTF_EXTENDEDKEY | 0, 0);
+				keybd_event((byte)(*it), 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+				Sleep(10);
+			}
+			else
+			{//其他字符
+				InputString(string(*it,1));
+				Sleep(10);
+			}
+// 			if (*it <= '9' && *it >= '0')
+// 			{
+// 				if (!alpha.empty())
+// 				{
+// 					InputString(alpha);
+// 					alpha.clear();
+// 				}
+// 				SendVirtualKey(*it);
+// 			}
+// 			else
+// 			{
+// 				alpha += *it;
+// 			}
+		}
+// 		if (!alpha.empty())
+// 		{
+// 			InputString(alpha);
+// 			alpha.clear();
+// 		}
+	}
+
 	void SetChromeAdressBlank()
 	{
 		std::vector<HWND> wnds;
-		FindChromeMainWnd(wnds, CHROME_WINDOW_CLASS_NAME);
+		FindMainWnds(wnds, CHROME_WINDOW_CLASS_NAME);
 		HWND hBrowMain = * wnds.begin();
 
 		RECT rect;
@@ -680,7 +803,7 @@ namespace BrowserAddress{
 	void ReplaceChromeAdressBar(std::string text)
 	{
 		std::vector<HWND> wnds;
-		FindChromeMainWnd(wnds, CHROME_WINDOW_CLASS_NAME);
+		FindMainWnds(wnds, CHROME_WINDOW_CLASS_NAME);
 		HWND hBrowMain = * wnds.begin();
 
 		RECT rect;
@@ -758,14 +881,103 @@ namespace BrowserAddress{
 //		SetActiveWindow(hBrowMain);
 	}
 
+	DWORD run_execute(std::wstring app, std::wstring cmd=NULL)
+	{
+		STARTUPINFO si = { sizeof(si) };
+		PROCESS_INFORMATION pi;
+		si.dwFlags = STARTF_USESHOWWINDOW; // 指定wShowWindow成员有效
+		si.wShowWindow = TRUE; // 此成员设为TRUE的话则显示新建进程的主窗口
+		BOOL bRet = CreateProcess (
+			app.c_str(),// 不在此指定可执行文件的文件名
+			NULL,//命令行参数
+			NULL,// 默认进程安全性
+			NULL,// 默认进程安全性
+			FALSE,// 指定当前进程内句柄不可以被子进程继承
+			CREATE_NEW_CONSOLE,// 为新进程创建一个新的控制台窗口
+			NULL,// 使用本进程的环境变量
+			NULL,// 使用本进程的驱动器和目录
+			&si,
+			&pi) ;
+		if(bRet)
+		{
+			// 不使用的句柄最好关掉
+			CloseHandle(pi.hThread);
+			CloseHandle(pi.hProcess);
+			printf("新进程的ID号：%d\n",pi.dwProcessId);
+			printf("新进程的主线程ID号：%d\n",pi.dwThreadId);
+		}
+		return pi.dwProcessId;
+	}
 
+	HWND GetWindowHandleByPID(DWORD dwProcessID)
+	{
+		EnumWndPidStruct pstruct={0};
+		pstruct.pid = dwProcessID;
+		EnumWindows(EnumWindowProcPid, (LPARAM)&pstruct);
+// 		for (std::vector<HWND>::iterator it = pstruct.hwnd_vec.begin(); it != pstruct.hwnd_vec.end(); ++it)
+// 		{
+// 			std::cout<<*it<<std::endl;
+// 		}
+		return pstruct.hwnd_vec.empty() ? NULL : *(pstruct.hwnd_vec.begin());
+	}
+
+	void FindLogonBtnAndClick(HWND hMain)
+	{
+		SetForegroundWindow(hMain);
+		WindowElementFinder::SendVirtualKey(VK_RETURN);
+		RECT mainRect;
+		GetWindowRect(hMain,&mainRect);
+		WindowElementFinder::SendClick(mainRect.right - 80, mainRect.top+5);
+	}
+
+	void Logon(LPCTSTR szPath, string qqAccout, string qqPwd )
+	{
+		DWORD pid = WindowElementFinder::run_execute(szPath,TEXT(""));
+
+		vector<HWND> h_TMs;
+		HWND tmMain = NULL;
+		while(tmMain == NULL)
+		{
+			tmMain = WindowElementFinder::GetWindowHandleByPID(pid);
+			WindowElementFinder::FindSubWindows(tmMain,h_TMs,TEXT("ATL:30A4D1D8"));
+			Sleep(100);
+		}
+		HWND tmAccountWnd = *h_TMs.begin();
+		WindowElementFinder::FindSubWindows(tmMain,h_TMs,TEXT("Edit"));
+		HWND tmPwdhWnd = *h_TMs.begin();
+
+		RECT accountRect;
+		GetWindowRect(tmAccountWnd,&accountRect);
+		SetForegroundWindow(tmMain);
+		WindowElementFinder::SendClick(accountRect.left/2+accountRect.right/2,accountRect.top/2+accountRect.bottom/2);
+		WindowElementFinder::SendCtrlChar('A');
+		WindowElementFinder::InputString(qqAccout);
+
+		RECT pwdRect;
+		GetWindowRect(tmPwdhWnd,&pwdRect);
+		SetForegroundWindow(tmMain);
+		WindowElementFinder::SendClick(pwdRect.right-10,pwdRect.top/2+pwdRect.bottom/2);
+		for (int i = 0; i<MAX_LEN_OF_QQ; ++i)
+		{
+			WindowElementFinder::SendVirtualKey(VK_BACK);
+		}
+		SetForegroundWindow(tmMain);
+		WindowElementFinder::InputPwdString(qqPwd);
+
+		FindLogonBtnAndClick(tmMain);
+		//	WindowElementFinder::SendClick(accountRect.left/2 + accountRect.right/2,accountRect.top/2 + accountRect.bottom/2+190);
+		// 	Sleep(1000);
+		// 	RECT mainRect;
+		// 	GetWindowRect(tmMain,&mainRect);
+		// 	WindowElementFinder::SendClick(mainRect.right - 80, mainRect.top+5);
+	}
 }
 
 void BrowserData::GetBrowserMainWnd()
 {
 	std::vector<HWND> wnds;
 
-	BrowserAddress::FindChromeMainWnd(wnds, m_MainClsName);
+	WindowElementFinder::FindMainWnds(wnds, m_MainClsName);
 
 	if (wnds.empty())
 	{
@@ -776,7 +988,7 @@ void BrowserData::GetBrowserMainWnd()
 	m_hMainWnd = *(wnds.begin());
 #else
 //	m_hMainWnd = *(wnds.begin());
-	m_hMainWnd = BrowserAddress::GetHwndToModify(wnds);
+	m_hMainWnd = WindowElementFinder::GetHwndToModify(wnds);
 #endif
 	// 窗口必须是最前，否则为NULL，扩展中用
 }
@@ -793,7 +1005,7 @@ void BrowserData::GetAddressHwnd()
 		return;
 	}
 	std::vector<HWND> hControls;
-	BrowserAddress::FindSubWindows(m_hMainWnd, hControls, m_ClsName, m_WndName);
+	WindowElementFinder::FindSubWindows(m_hMainWnd, hControls, m_ClsName, m_WndName);
 	if (hControls.empty())
 	{
 		m_hAddressWnd = NULL;
@@ -817,7 +1029,7 @@ void BrowserData::GetAddressCenter()
 
 	if (m_hAddressWnd == m_hMainWnd)
 	{
-		BrowserAddress::FindAccObjLocWithNameOrClass(m_hAddressWnd, m_ClsName, m_WndName, m_RoleName, adressRect);
+		WindowElementFinder::FindAccObjLocWithNameOrClass(m_hAddressWnd, m_ClsName, m_WndName, m_RoleName, adressRect);
 		m_ptCenterAddress.x = adressRect.left + adressRect.right / 2;
 		m_ptCenterAddress.y = adressRect.top + adressRect.bottom / 2;
 	}
