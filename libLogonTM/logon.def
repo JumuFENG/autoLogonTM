@@ -1,0 +1,4 @@
+LIBRARY   libLogonTM
+
+EXPORTS
+  logonTM         @1

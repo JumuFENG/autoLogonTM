@@ -6,4 +6,5 @@ project(AutoLogonTM)
 
 add_definitions(-DUNICODE -D_UNICODE)
 
-add_subdirectory(src)
+add_subdirectory(libLogonTM)
+add_subdirectory(TEST)

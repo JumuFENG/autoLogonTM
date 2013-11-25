@@ -49,6 +49,47 @@ private:
 	void GetAddressHwnd();
 };
 
+enum LaunchType{
+	QQ,
+	TM
+};
+
+typedef struct tagPanelNames{
+	LPCTSTR mainCls,mainWndName,
+		accountCls,accountWndName,
+		pwdCls, pwdWndName;
+} PanelNames;
+
+class QQAccountData{
+public:
+	string account;
+	string pwd;
+	HWND h_MainHwnd;
+	long persistTime;
+	LaunchType ltype;
+	PanelNames panels;
+	QQAccountData(string account, string pwd, long time = 0, LaunchType ltype = TM)
+		:account(account),pwd(pwd),
+		persistTime(time),ltype(ltype),
+		h_MainHwnd(NULL)
+	{
+		switch(ltype)
+		{//…–Œ¥ µœ÷”√QQµ«¬º
+		case QQ:
+		case TM:
+		default:
+			panels.mainCls = TEXT("TXGuiFoundation");
+			panels.accountCls = TEXT("ATL:30A4D1D8");
+			panels.pwdCls = TEXT("Edit");
+			panels.mainWndName = TEXT("TM2009");
+			panels.accountWndName = NULL;
+			panels.pwdWndName = TEXT("R");
+			break;
+		}
+	}
+	~QQAccountData(){}
+};
+
 namespace WindowElementFinder{
 	typedef struct tagEnumWindowStruct{
 		std::vector<HWND> hwnd_vec;
@@ -930,41 +971,51 @@ namespace WindowElementFinder{
 		WindowElementFinder::SendClick(mainRect.right - 80, mainRect.top+5);
 	}
 
-	void Logon(LPCTSTR szPath, string qqAccout, string qqPwd )
+	void startupQQClient(LPCTSTR szPath, QQAccountData* data, LaunchType ltype = TM)
 	{
 		DWORD pid = WindowElementFinder::run_execute(szPath,TEXT(""));
-
-		vector<HWND> h_TMs;
 		HWND tmMain = NULL;
 		while(tmMain == NULL)
 		{
 			tmMain = WindowElementFinder::GetWindowHandleByPID(pid);
-			WindowElementFinder::FindSubWindows(tmMain,h_TMs,TEXT("ATL:30A4D1D8"));
+			Sleep(100);
+		}
+		data->h_MainHwnd = tmMain;
+	}
+
+	void Logon(LPCTSTR szPath, string qqAccout, string qqPwd )
+	{
+		QQAccountData qqData(qqAccout, qqPwd);
+		startupQQClient(szPath, &qqData, TM);
+		vector<HWND> h_TMs;
+		while(h_TMs.empty())
+		{
+			WindowElementFinder::FindSubWindows(qqData.h_MainHwnd,h_TMs,TEXT("ATL:30A4D1D8"));
 			Sleep(100);
 		}
 		HWND tmAccountWnd = *h_TMs.begin();
-		WindowElementFinder::FindSubWindows(tmMain,h_TMs,TEXT("Edit"));
+		WindowElementFinder::FindSubWindows(qqData.h_MainHwnd,h_TMs,TEXT("Edit"));
 		HWND tmPwdhWnd = *h_TMs.begin();
 
 		RECT accountRect;
 		GetWindowRect(tmAccountWnd,&accountRect);
-		SetForegroundWindow(tmMain);
+		SetForegroundWindow(qqData.h_MainHwnd);
 		WindowElementFinder::SendClick(accountRect.left/2+accountRect.right/2,accountRect.top/2+accountRect.bottom/2);
 		WindowElementFinder::SendCtrlChar('A');
 		WindowElementFinder::InputString(qqAccout);
 
 		RECT pwdRect;
 		GetWindowRect(tmPwdhWnd,&pwdRect);
-		SetForegroundWindow(tmMain);
+		SetForegroundWindow(qqData.h_MainHwnd);
 		WindowElementFinder::SendClick(pwdRect.right-10,pwdRect.top/2+pwdRect.bottom/2);
 		for (int i = 0; i<MAX_LEN_OF_QQ; ++i)
 		{
 			WindowElementFinder::SendVirtualKey(VK_BACK);
 		}
-		SetForegroundWindow(tmMain);
+		SetForegroundWindow(qqData.h_MainHwnd);
 		WindowElementFinder::InputPwdString(qqPwd);
 
-		FindLogonBtnAndClick(tmMain);
+		FindLogonBtnAndClick(qqData.h_MainHwnd);
 		//	WindowElementFinder::SendClick(accountRect.left/2 + accountRect.right/2,accountRect.top/2 + accountRect.bottom/2+190);
 		// 	Sleep(1000);
 		// 	RECT mainRect;
