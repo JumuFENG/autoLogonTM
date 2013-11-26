@@ -1000,9 +1000,10 @@ namespace WindowElementFinder{
 		RECT accountRect;
 		GetWindowRect(tmAccountWnd,&accountRect);
 		SetForegroundWindow(qqData.h_MainHwnd);
+		SetFocus(qqData.h_MainHwnd);
 		WindowElementFinder::SendClick(accountRect.left/2+accountRect.right/2,accountRect.top/2+accountRect.bottom/2);
 		WindowElementFinder::SendCtrlChar('A');
-		WindowElementFinder::InputString(qqAccout);
+		WindowElementFinder::InputPwdString(qqAccout);
 
 		RECT pwdRect;
 		GetWindowRect(tmPwdhWnd,&pwdRect);

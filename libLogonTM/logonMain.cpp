@@ -1,6 +1,6 @@
 #include "logonTM.h"
 
-void logonTM(LPCTSTR path, string QQAccount, string QQPwd)
+void logonTM(const char* QQAccount,const char* QQPwd)
 {
-	WindowElementFinder::Logon(path, QQAccount, QQPwd);
+	WindowElementFinder::Logon(TEXT("C:\\Program Files (x86)\\Tencent\\TM2008\\Bin\\TM.exe"),QQAccount, QQPwd);
 }
