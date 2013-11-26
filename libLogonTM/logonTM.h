@@ -1,2 +1,2 @@
 #include "ControlsFinder.h"
-void logonTM(LPCTSTR path, string QQAccount, string QQPwd);
+void logonTM(const char* QQAccount, const char* QQPwd);
