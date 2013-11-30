@@ -922,33 +922,32 @@ namespace WindowElementFinder{
 //		SetActiveWindow(hBrowMain);
 	}
 
-	DWORD run_execute(std::wstring app, std::wstring cmd=NULL)
+	DWORD run_execute(LPCTSTR app, LPCTSTR cmd)//std::string path,
 	{
-		STARTUPINFO si = { sizeof(si) };
+		//一些必备参数设置   
+		STARTUPINFO si;
+		memset(&si,0,sizeof(STARTUPINFO));
+		si.cb = sizeof(STARTUPINFO);
+		si.dwFlags = STARTF_USESHOWWINDOW;
+		si.wShowWindow = SW_SHOW;
 		PROCESS_INFORMATION pi;
-		si.dwFlags = STARTF_USESHOWWINDOW; // 指定wShowWindow成员有效
-		si.wShowWindow = TRUE; // 此成员设为TRUE的话则显示新建进程的主窗口
-		BOOL bRet = CreateProcess (
-			app.c_str(),// 不在此指定可执行文件的文件名
-			NULL,//命令行参数
-			NULL,// 默认进程安全性
-			NULL,// 默认进程安全性
-			FALSE,// 指定当前进程内句柄不可以被子进程继承
-			CREATE_NEW_CONSOLE,// 为新进程创建一个新的控制台窗口
-			NULL,// 使用本进程的环境变量
-			NULL,// 使用本进程的驱动器和目录
-			&si,
-			&pi) ;
-		if(bRet)
+		//必备参数设置结束   
+		TCHAR wcmd[MAX_PATH] = {0};
+		_tcscpy_s(wcmd, MAX_PATH, cmd);
+		TCHAR wapp[MAX_PATH] = {0};
+		_tcscpy_s(wapp, MAX_PATH, app);
+		if(!CreateProcess(
+			wapp, wcmd, 
+			NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))  
 		{
-			// 不使用的句柄最好关掉
-			CloseHandle(pi.hThread);
-			CloseHandle(pi.hProcess);
-			printf("新进程的ID号：%d\n",pi.dwProcessId);
-			printf("新进程的主线程ID号：%d\n",pi.dwThreadId);
+			return 0;
 		}
+		// 不使用的句柄最好关掉   
+		CloseHandle(pi.hThread);
+		CloseHandle(pi.hProcess);
 		return pi.dwProcessId;
 	}
+
 
 	HWND GetWindowHandleByPID(DWORD dwProcessID)
 	{

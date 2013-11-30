@@ -1,4 +1,6 @@
 LIBRARY   libLogonTM
 
 EXPORTS
-  logonTM         @1
+  logonTM          @1
+  addAQQRec        @2
+  getAllAccounts   @3
