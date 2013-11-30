@@ -25,13 +25,17 @@ namespace AutoLogonTM
             [DllImport("libLogonTM.dll")]
             public static extern void addAQQRec(StringBuilder qqAccount, StringBuilder qqPwd);
             [DllImport("libLogonTM.dll")]
-            public static extern int getAllAccounts(StringBuilder qqs);
+            public static extern int getAllAccounts(StringBuilder qqs, int buflen);
+            [DllImport("libLogonTM.dll")]
+            public static extern void setQPath(StringBuilder qpath);
+            [DllImport("libLogonTM.dll")]
+            public static extern int getLastPath(StringBuilder qpath, int buflen);
         }
 
         private string getAllAccounts()
         {
             StringBuilder s = new StringBuilder(256);
-            int len = libLogonTM.getAllAccounts(s);
+            int len = libLogonTM.getAllAccounts(s, 256);
             if (len == 0)
             {
                 return null;
@@ -39,11 +43,26 @@ namespace AutoLogonTM
             if (len >= 256)
             {
                 s = new StringBuilder(len + 1);
-                libLogonTM.getAllAccounts(s);
+                libLogonTM.getAllAccounts(s, len + 1);
             }
             return s.ToString();
         }
 
+        private string getQPath()
+        {
+            StringBuilder s = new StringBuilder(256);
+            int len = libLogonTM.getLastPath(s, 256);
+            if (len == 0)
+            {
+                return null;
+            }
+            if (len >= 256)
+            {
+                s = new StringBuilder(len + 1);
+                libLogonTM.getLastPath(s, len + 1);
+            }
+            return s.ToString();
+        }
 //         private string getPwdByAccount(string acc)
 //         {
 //             StringBuilder s = new StringBuilder(20);
@@ -111,6 +130,12 @@ namespace AutoLogonTM
         private void AutoLogonTM_Load(object sender, EventArgs e)
         {
             string allq = getAllAccounts();
+            string qpath = getQPath();
+            if (qpath != null && !qpath.Equals(""))
+            {
+                cmbboxPath.Items.Add(qpath);
+                cmbboxPath.SelectedIndex = 0;
+            }
             if (allq == null || allq.Equals("")) return;//
             string[] allqq = allq.Split('-');
             foreach (string qstr in allqq)
@@ -119,7 +144,16 @@ namespace AutoLogonTM
             }
         }
 
-
+        private void btnBrow_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.ShowDialog();
+            cmbboxPath.Items.Add(ofd.FileName);
+            cmbboxPath.SelectedIndex = 0;
+            StringBuilder qpath = new StringBuilder(ofd.FileName);
+            libLogonTM.setQPath(qpath);
+           // MessageBox.Show(qpath.ToString());
+        }
     }
 }
 

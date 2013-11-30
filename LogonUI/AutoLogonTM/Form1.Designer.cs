@@ -164,6 +164,7 @@
             this.btnBrow.TabIndex = 9;
             this.btnBrow.Text = "浏览";
             this.btnBrow.UseVisualStyleBackColor = true;
+            this.btnBrow.Click += new System.EventHandler(this.btnBrow_Click);
             // 
             // dGVAccounts
             // 

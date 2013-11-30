@@ -797,7 +797,7 @@ namespace WindowElementFinder{
 			}
 			else
 			{//ÆäËû×Ö·û
-				InputString(string(*it,1));
+				InputString(string(&(*it), 1));
 				Sleep(10);
 			}
 // 			if (*it <= '9' && *it >= '0')
@@ -984,6 +984,10 @@ namespace WindowElementFinder{
 
 	void Logon(LPCTSTR szPath, string qqAccout, string qqPwd )
 	{
+		if (szPath == NULL || _tcscmp(szPath,TEXT("")) == 0)
+		{
+			return;
+		}
 		QQAccountData qqData(qqAccout, qqPwd);
 		startupQQClient(szPath, &qqData, TM);
 		vector<HWND> h_TMs;

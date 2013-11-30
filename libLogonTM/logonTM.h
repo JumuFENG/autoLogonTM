@@ -13,3 +13,5 @@ void addAQQRec(const char* QQAccount, const char* QQPwd);
 // delete[] p;
 // that's the best way to use the interface below.
 int getAllAccounts(char* rlt, int buflen);
+void setQPath(const char* qpath);
+int getLastPath(char* rlt, int buflen);

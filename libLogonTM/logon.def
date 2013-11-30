@@ -4,3 +4,5 @@ EXPORTS
   logonTM          @1
   addAQQRec        @2
   getAllAccounts   @3
+  setQPath         @4
+  getLastPath      @5
