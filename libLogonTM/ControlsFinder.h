@@ -965,6 +965,8 @@ namespace WindowElementFinder{
 	{
 		SetForegroundWindow(hMain);
 		WindowElementFinder::SendVirtualKey(VK_RETURN);
+		Sleep(1000);
+		while(FindWindow(NULL,TEXT("QQ安全中心")));
 		RECT mainRect;
 		GetWindowRect(hMain,&mainRect);
 		WindowElementFinder::SendClick(mainRect.right - 80, mainRect.top+5);

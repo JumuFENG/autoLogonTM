@@ -117,9 +117,9 @@ void QQAccountBuilder::unprepare()
 	file.close();
 }
 
-void QQAccountBuilder::addaRec(const char* QQAccount, const char* QQPwd)
+void QQAccountBuilder::addaRec(const char* QQAccount, const char* QQPwd_in)
 {
-	if (QQAccount == NULL || QQPwd == NULL)
+	if (QQAccount == NULL || QQPwd_in == NULL)
 	{
 		return;
 	}
@@ -127,6 +127,7 @@ void QQAccountBuilder::addaRec(const char* QQAccount, const char* QQPwd)
 	{
 		prepare();
 	}
+	string QQPwd = base32::base32_encode(string(QQPwd_in));
 	bool bexists = false;
 	for (vector<pair<string,string> >::iterator it = QContainer.begin();it!=QContainer.end();++it)
 	{
@@ -158,7 +159,7 @@ string QQAccountBuilder::getPwdByAccounts(const char* QQAccount)
 	{
 		if ((*it).first.compare(string(QQAccount)) == 0)
 		{
-			return (*it).second;
+			return base32::base32_decode((*it).second);
 		}
 	}
 	return "";
